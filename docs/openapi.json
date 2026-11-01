@@ -1,11 +1,11 @@
 {
   "openapi": "3.0.3",
   "info": {
-    "title": "Proceive API - Procure-to-Receive Engine",
+    "title": "Proceive API - Procure-to-Receive",
     "description": "Mini-ERP Procurement System (Proceive) dengan arsitektur Modular Monolith di Golang. Mengelola alur pengadaan barang mulai dari Purchase Requisition (PR), Purchase Order (PO), verifikasi Surat Jalan, hingga Goods Receipt (GR).",
     "version": "1.0.0",
     "contact": {
-      "name": "Proceive Engineering Team",
+      "name": "Proceive Team",
       "email": "support@proceive.com"
     }
   },
@@ -859,7 +859,7 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "notes": { "type": "string", "example": "Pembaruan spesifikasi laptop tim engineer" },
+                  "notes": { "type": "string", "example": "Pembaruan spesifikasi laptop tim pengembang" },
                   "items": {
                     "type": "array",
                     "items": {
