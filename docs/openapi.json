@@ -1,0 +1,1189 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Proceive API - Procure-to-Receive Engine",
+    "description": "Mini-ERP Procurement System (Proceive) dengan arsitektur Modular Monolith di Golang. Mengelola alur pengadaan barang mulai dari Purchase Requisition (PR), Purchase Order (PO), verifikasi Surat Jalan, hingga Goods Receipt (GR).",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Proceive Engineering Team",
+      "email": "support@proceive.com"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8081",
+      "description": "Local Development Server"
+    }
+  ],
+  "security": [
+    {
+      "BearerAuth": []
+    }
+  ],
+  "tags": [
+    { "name": "Authentication", "description": "Autentikasi akun & sesi JWT" },
+    { "name": "Divisions", "description": "Pengelolaan master divisi organisasi" },
+    { "name": "Positions", "description": "Pengelolaan master jabatan struktural" },
+    { "name": "Roles", "description": "Manajemen role pengguna & penetapan permissions (role_has_permissions)" },
+    { "name": "Permissions", "description": "Manajemen hak aksi spesifik per modul" },
+    { "name": "Modules", "description": "Manajemen daftar modul aplikasi RBAC" },
+    { "name": "Users", "description": "Pengelolaan pengguna sistem & akun vendor" },
+    { "name": "Vendors", "description": "Katalog supplier & rekanan pengadaan" },
+    { "name": "Items", "description": "Katalog master barang & estimasi harga" },
+    { "name": "Purchase Requisitions", "description": "Pengajuan & approval permintaan barang" },
+    { "name": "Purchase Orders", "description": "Penerbitan PO resmi & pengiriman ke vendor" },
+    { "name": "Goods Receipts", "description": "Upload Surat Jalan, verifikasi dokumen & penerimaan fisik" }
+  ],
+  "paths": {
+    "/api/v1/auth/login": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Login Pengguna",
+        "description": "Masuk menggunakan email dan password untuk mendapatkan Bearer Token.",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password"],
+                "properties": {
+                  "email": { "type": "string", "format": "email", "example": "admin@proceive.com" },
+                  "password": { "type": "string", "example": "password123" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Login berhasil" },
+          "401": { "description": "Email atau password salah" }
+        }
+      }
+    },
+    "/api/v1/auth/me": {
+      "get": {
+        "tags": ["Authentication"],
+        "summary": "Profil Pengguna Sedang Login",
+        "description": "Mengambil rincian profil lengkap pengguna yang saat ini aktif login berdasarkan Bearer Token.",
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": { "description": "Profil pengguna berhasil diambil" },
+          "401": { "description": "Sesi tidak terotentikasi" }
+        }
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Logout Pengguna",
+        "description": "Mengakhiri sesi autentikasi dan menghapus token akses.",
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": { "description": "Berhasil logout dari sesi" },
+          "401": { "description": "Sesi tidak terotentikasi" }
+        }
+      }
+    },
+    "/api/v1/divisions": {
+      "get": {
+        "tags": ["Divisions"],
+        "summary": "Daftar Divisi",
+        "description": "Mengambil seluruh daftar divisi dengan pagination dan pencarian.",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          { "name": "page", "in": "query", "required": false, "schema": { "type": "integer", "default": 1 }, "description": "Nomor halaman data" },
+          { "name": "limit", "in": "query", "required": false, "schema": { "type": "integer", "default": 10 }, "description": "Jumlah data per halaman (maks 100)" },
+          { "name": "search", "in": "query", "required": false, "schema": { "type": "string" }, "description": "Filter pencarian nama atau kode divisi" },
+          { "name": "sort_by", "in": "query", "required": false, "schema": { "type": "string", "default": "created_at", "enum": ["code", "name", "created_at", "updated_at"] }, "description": "Kolom pengurutan" },
+          { "name": "order", "in": "query", "required": false, "schema": { "type": "string", "default": "DESC", "enum": ["ASC", "DESC"] }, "description": "Arah pengurutan" }
+        ],
+        "responses": { "200": { "description": "Daftar divisi berhasil diambil beserta metadata pagination" } }
+      },
+      "post": {
+        "tags": ["Divisions"],
+        "summary": "Tambah Divisi Baru",
+        "description": "Membuat data master divisi baru.",
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["code", "name"],
+                "properties": {
+                  "code": { "type": "string", "example": "MKT" },
+                  "name": { "type": "string", "example": "Marketing & Communications" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Divisi berhasil dibuat" } }
+      }
+    },
+    "/api/v1/divisions/{id}": {
+      "get": {
+        "tags": ["Divisions"],
+        "summary": "Detail Divisi",
+        "description": "Mengambil detail divisi berdasarkan ID.",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "200": { "description": "Detail divisi berhasil diambil" } }
+      },
+      "put": {
+        "tags": ["Divisions"],
+        "summary": "Perbarui Divisi",
+        "description": "Mengubah data divisi berdasarkan ID.",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "code": { "type": "string", "example": "MKT" },
+                  "name": { "type": "string", "example": "Marketing & Brand" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Divisi berhasil diperbarui" } }
+      },
+      "delete": {
+        "tags": ["Divisions"],
+        "summary": "Hapus Divisi",
+        "description": "Menghapus data divisi berdasarkan ID.",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "200": { "description": "Divisi berhasil dihapus" } }
+      }
+    },
+    "/api/v1/positions": {
+      "get": {
+        "tags": ["Positions"],
+        "summary": "Daftar Jabatan",
+        "description": "Mengambil seluruh daftar jabatan struktural dengan pagination dan pencarian.",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          { "name": "page", "in": "query", "required": false, "schema": { "type": "integer", "default": 1 }, "description": "Nomor halaman data" },
+          { "name": "limit", "in": "query", "required": false, "schema": { "type": "integer", "default": 10 }, "description": "Jumlah data per halaman (maks 100)" },
+          { "name": "search", "in": "query", "required": false, "schema": { "type": "string" }, "description": "Filter pencarian nama atau kode jabatan" },
+          { "name": "sort_by", "in": "query", "required": false, "schema": { "type": "string", "default": "created_at", "enum": ["code", "name", "created_at", "updated_at"] }, "description": "Kolom pengurutan" },
+          { "name": "order", "in": "query", "required": false, "schema": { "type": "string", "default": "DESC", "enum": ["ASC", "DESC"] }, "description": "Arah pengurutan" }
+        ],
+        "responses": { "200": { "description": "Daftar jabatan berhasil diambil beserta metadata pagination" } }
+      },
+      "post": {
+        "tags": ["Positions"],
+        "summary": "Tambah Jabatan Baru",
+        "description": "Membuat data master jabatan baru.",
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["code", "name"],
+                "properties": {
+                  "code": { "type": "string", "example": "TL" },
+                  "name": { "type": "string", "example": "Team Lead" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Jabatan berhasil dibuat" } }
+      }
+    },
+    "/api/v1/positions/{id}": {
+      "get": {
+        "tags": ["Positions"],
+        "summary": "Detail Jabatan",
+        "description": "Mengambil detail jabatan berdasarkan ID.",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "200": { "description": "Detail jabatan berhasil diambil" } }
+      },
+      "put": {
+        "tags": ["Positions"],
+        "summary": "Perbarui Jabatan",
+        "description": "Mengubah data jabatan berdasarkan ID.",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "code": { "type": "string", "example": "TL" },
+                  "name": { "type": "string", "example": "Senior Team Lead" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Jabatan berhasil diperbarui" } }
+      },
+      "delete": {
+        "tags": ["Positions"],
+        "summary": "Hapus Jabatan",
+        "description": "Menghapus data jabatan berdasarkan ID.",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "200": { "description": "Jabatan berhasil dihapus" } }
+      }
+    },
+    "/api/v1/roles": {
+      "get": {
+        "tags": ["Roles"],
+        "summary": "Daftar Role",
+        "description": "Mengambil seluruh daftar role pengguna dengan pagination dan pencarian.",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          { "name": "page", "in": "query", "required": false, "schema": { "type": "integer", "default": 1 }, "description": "Nomor halaman data" },
+          { "name": "limit", "in": "query", "required": false, "schema": { "type": "integer", "default": 10 }, "description": "Jumlah data per halaman (maks 100)" },
+          { "name": "search", "in": "query", "required": false, "schema": { "type": "string" }, "description": "Filter pencarian nama, kode, atau deskripsi role" },
+          { "name": "sort_by", "in": "query", "required": false, "schema": { "type": "string", "default": "created_at", "enum": ["name", "code", "created_at", "updated_at"] }, "description": "Kolom pengurutan" },
+          { "name": "order", "in": "query", "required": false, "schema": { "type": "string", "default": "DESC", "enum": ["ASC", "DESC"] }, "description": "Arah pengurutan" }
+        ],
+        "responses": { "200": { "description": "Daftar role berhasil diambil beserta metadata pagination" } }
+      },
+      "post": {
+        "tags": ["Roles"],
+        "summary": "Tambah Role Baru",
+        "description": "Membuat role baru beserta opsi inisialisasi permission.",
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["code", "name"],
+                "properties": {
+                  "code": { "type": "string", "example": "AUDITOR" },
+                  "name": { "type": "string", "example": "Internal Auditor" },
+                  "description": { "type": "string", "example": "Akses peninjauan transaksi dan laporan audit" },
+                  "permission_ids": {
+                    "type": "array",
+                    "items": { "type": "string", "format": "uuid" }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Role berhasil dibuat" } }
+      }
+    },
+    "/api/v1/roles/{id}": {
+      "get": {
+        "tags": ["Roles"],
+        "summary": "Detail Role",
+        "description": "Mengambil detail satu role beserta relasi permissions yang dimiliki.",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "200": { "description": "Detail role berhasil diambil" } }
+      },
+      "put": {
+        "tags": ["Roles"],
+        "summary": "Perbarui Role",
+        "description": "Mengubah kode, nama, atau deskripsi role.",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "code": { "type": "string", "example": "AUDITOR" },
+                  "name": { "type": "string", "example": "Senior Auditor" },
+                  "description": { "type": "string", "example": "Akses audit seluruh alur pengadaan" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Role berhasil diperbarui" } }
+      },
+      "delete": {
+        "tags": ["Roles"],
+        "summary": "Hapus Role",
+        "description": "Menghapus role dari sistem (Role ADMIN tidak dapat dihapus).",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "200": { "description": "Role berhasil dihapus" } }
+      }
+    },
+    "/api/v1/roles/{id}/permissions": {
+      "get": {
+        "tags": ["Roles"],
+        "summary": "Daftar Permissions Milik Role",
+        "description": "Mengambil semua hak akses permissions yang saat ini terhubung ke role (tabel role_has_permissions).",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "200": { "description": "Daftar permissions role berhasil diambil" } }
+      },
+      "post": {
+        "tags": ["Roles"],
+        "summary": "Assign / Sinkronisasi Permissions ke Role",
+        "description": "Menetapkan array permission_ids ke role pada tabel role_has_permissions.",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["permission_ids"],
+                "properties": {
+                  "permission_ids": {
+                    "type": "array",
+                    "items": { "type": "string", "format": "uuid" },
+                    "example": ["80c93395-47e5-4d96-90ea-e19968a9335e", "919ee474-476d-465e-aab3-f6ee7d901714"]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Permissions role berhasil diperbarui" } }
+      }
+    },
+    "/api/v1/permissions": {
+      "get": {
+        "tags": ["Permissions"],
+        "summary": "Daftar Permissions",
+        "description": "Mengambil daftar hak akses permissions dengan pagination, pencarian, dan filter modul.",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          { "name": "page", "in": "query", "required": false, "schema": { "type": "integer", "default": 1 }, "description": "Nomor halaman data" },
+          { "name": "limit", "in": "query", "required": false, "schema": { "type": "integer", "default": 10 }, "description": "Jumlah data per halaman (maks 100)" },
+          { "name": "search", "in": "query", "required": false, "schema": { "type": "string" }, "description": "Filter pencarian nama, kode, atau deskripsi permission" },
+          { "name": "module_id", "in": "query", "required": false, "schema": { "type": "string", "format": "uuid" }, "description": "Filter permissions berdasarkan modul" },
+          { "name": "sort_by", "in": "query", "required": false, "schema": { "type": "string", "default": "created_at", "enum": ["name", "code", "created_at", "updated_at"] }, "description": "Kolom pengurutan" },
+          { "name": "order", "in": "query", "required": false, "schema": { "type": "string", "default": "DESC", "enum": ["ASC", "DESC"] }, "description": "Arah pengurutan" }
+        ],
+        "responses": { "200": { "description": "Daftar permission berhasil diambil beserta metadata pagination" } }
+      },
+      "post": {
+        "tags": ["Permissions"],
+        "summary": "Tambah Permission Baru",
+        "description": "Membuat hak akses permission baru untuk modul tertentu.",
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["module_id", "name", "code"],
+                "properties": {
+                  "module_id": { "type": "string", "format": "uuid" },
+                  "name": { "type": "string", "example": "Export Laporan PR" },
+                  "code": { "type": "string", "example": "purchase_requisition.export" },
+                  "description": { "type": "string", "example": "Dapat mengunduh rekap spreadsheet pengajuan PR" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Permission berhasil dibuat" } }
+      }
+    },
+    "/api/v1/permissions/{id}": {
+      "get": {
+        "tags": ["Permissions"],
+        "summary": "Detail Permission",
+        "description": "Mengambil detail permission beserta informasi modulnya.",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "200": { "description": "Detail permission berhasil diambil" } }
+      },
+      "put": {
+        "tags": ["Permissions"],
+        "summary": "Perbarui Permission",
+        "description": "Mengubah nama, kode, atau modul permission.",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": { "type": "string", "example": "Export Rekap PR" },
+                  "code": { "type": "string", "example": "purchase_requisition.export_excel" },
+                  "description": { "type": "string", "example": "Izin export format excel" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Permission berhasil diperbarui" } }
+      },
+      "delete": {
+        "tags": ["Permissions"],
+        "summary": "Hapus Permission",
+        "description": "Menghapus permission dari sistem.",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "200": { "description": "Permission berhasil dihapus" } }
+      }
+    },
+    "/api/v1/modules": {
+      "get": {
+        "tags": ["Modules"],
+        "summary": "Daftar Modul Sistem",
+        "description": "Mengambil daftar modul aplikasi yang terdaftar di sistem RBAC dengan pagination dan pencarian.",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          { "name": "page", "in": "query", "required": false, "schema": { "type": "integer", "default": 1 }, "description": "Nomor halaman data" },
+          { "name": "limit", "in": "query", "required": false, "schema": { "type": "integer", "default": 10 }, "description": "Jumlah data per halaman (maks 100)" },
+          { "name": "search", "in": "query", "required": false, "schema": { "type": "string" }, "description": "Filter pencarian nama, slug, atau deskripsi modul" },
+          { "name": "sort_by", "in": "query", "required": false, "schema": { "type": "string", "default": "created_at", "enum": ["name", "slug", "created_at", "updated_at"] }, "description": "Kolom pengurutan" },
+          { "name": "order", "in": "query", "required": false, "schema": { "type": "string", "default": "DESC", "enum": ["ASC", "DESC"] }, "description": "Arah pengurutan" }
+        ],
+        "responses": { "200": { "description": "Daftar modul berhasil diambil beserta metadata pagination" } }
+      },
+      "post": {
+        "tags": ["Modules"],
+        "summary": "Tambah Modul Baru",
+        "description": "Mendaftarkan modul aplikasi baru ke sistem.",
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "slug"],
+                "properties": {
+                  "name": { "type": "string", "example": "Finance & Invoice" },
+                  "slug": { "type": "string", "example": "finance" },
+                  "description": { "type": "string", "example": "Modul pengelolaan faktur dan pembayaran vendor" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Modul berhasil dibuat" } }
+      }
+    },
+    "/api/v1/modules/{id}": {
+      "get": {
+        "tags": ["Modules"],
+        "summary": "Detail Modul",
+        "description": "Mengambil detail modul aplikasi berdasarkan ID.",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "200": { "description": "Detail modul berhasil diambil" } }
+      },
+      "put": {
+        "tags": ["Modules"],
+        "summary": "Perbarui Modul",
+        "description": "Mengubah nama, slug, atau deskripsi modul.",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": { "type": "string", "example": "Finance & Invoicing" },
+                  "slug": { "type": "string", "example": "finance" },
+                  "description": { "type": "string", "example": "Pengelolaan tagihan dan faktur" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Modul berhasil diperbarui" } }
+      },
+      "delete": {
+        "tags": ["Modules"],
+        "summary": "Hapus Modul",
+        "description": "Menghapus modul dari sistem (akan menghapus relasi permissions modul terkait).",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "200": { "description": "Modul berhasil dihapus" } }
+      }
+    },
+    "/api/v1/users": {
+      "get": {
+        "tags": ["Users"],
+        "summary": "Daftar Pengguna",
+        "description": "Mengambil seluruh pengguna sistem (Pegawai internal & akun vendor) dengan pagination, pencarian, dan filter role/organisasi.",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          { "name": "page", "in": "query", "required": false, "schema": { "type": "integer", "default": 1 }, "description": "Nomor halaman data" },
+          { "name": "limit", "in": "query", "required": false, "schema": { "type": "integer", "default": 10 }, "description": "Jumlah data per halaman (maks 100)" },
+          { "name": "search", "in": "query", "required": false, "schema": { "type": "string" }, "description": "Filter pencarian nama atau email pengguna" },
+          { "name": "role_id", "in": "query", "required": false, "schema": { "type": "string", "format": "uuid" }, "description": "Filter pengguna berdasarkan Role ID" },
+          { "name": "division_id", "in": "query", "required": false, "schema": { "type": "string", "format": "uuid" }, "description": "Filter pengguna berdasarkan Divisi ID" },
+          { "name": "position_id", "in": "query", "required": false, "schema": { "type": "string", "format": "uuid" }, "description": "Filter pengguna berdasarkan Jabatan ID" },
+          { "name": "vendor_id", "in": "query", "required": false, "schema": { "type": "string", "format": "uuid" }, "description": "Filter akun pengguna berdasarkan Vendor ID" },
+          { "name": "sort_by", "in": "query", "required": false, "schema": { "type": "string", "default": "created_at", "enum": ["name", "email", "created_at", "updated_at"] }, "description": "Kolom pengurutan" },
+          { "name": "order", "in": "query", "required": false, "schema": { "type": "string", "default": "DESC", "enum": ["ASC", "DESC"] }, "description": "Arah pengurutan" }
+        ],
+        "responses": { "200": { "description": "Daftar pengguna berhasil diambil beserta metadata pagination" } }
+      },
+      "post": {
+        "tags": ["Users"],
+        "summary": "Tambah Pengguna Baru",
+        "description": "Membuat akun pengguna baru dengan menetapkan role, divisi, jabatan, atau asosiasi vendor.",
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "email", "password", "role_id"],
+                "properties": {
+                  "name": { "type": "string", "example": "Ahmad Dani" },
+                  "email": { "type": "string", "format": "email", "example": "ahmad@proceive.com" },
+                  "password": { "type": "string", "example": "password123" },
+                  "role_id": { "type": "string", "format": "uuid" },
+                  "division_id": { "type": "string", "format": "uuid" },
+                  "position_id": { "type": "string", "format": "uuid" },
+                  "vendor_id": { "type": "string", "format": "uuid" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Pengguna baru berhasil dibuat" } }
+      }
+    },
+    "/api/v1/users/{id}": {
+      "get": {
+        "tags": ["Users"],
+        "summary": "Detail Pengguna",
+        "description": "Mengambil rincian informasi pengguna berdasarkan ID beserta preloads relasi.",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "200": { "description": "Detail pengguna berhasil diambil" } }
+      },
+      "put": {
+        "tags": ["Users"],
+        "summary": "Perbarui Pengguna",
+        "description": "Mengubah informasi nama, email, password, role, jabatan, divisi, atau vendor pengguna.",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": { "type": "string", "example": "Ahmad Dani Updated" },
+                  "email": { "type": "string", "format": "email", "example": "ahmad.dani@proceive.com" },
+                  "password": { "type": "string", "example": "newpassword123" },
+                  "role_id": { "type": "string", "format": "uuid" },
+                  "division_id": { "type": "string", "format": "uuid" },
+                  "position_id": { "type": "string", "format": "uuid" },
+                  "vendor_id": { "type": "string", "format": "uuid" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Pengguna berhasil diperbarui" } }
+      },
+      "delete": {
+        "tags": ["Users"],
+        "summary": "Hapus Pengguna",
+        "description": "Menghapus akun pengguna dari sistem (Proteksi: tidak bisa menghapus diri sendiri, akun ADMIN, atau user yang memiliki histori transaksi PR/PO).",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "200": { "description": "Pengguna berhasil dihapus" } }
+      }
+    },
+    "/api/v1/vendors": {
+      "get": {
+        "tags": ["Vendors"],
+        "summary": "Katalog Vendor",
+        "description": "Mengambil daftar rekanan vendor penyedia barang dengan pagination, pencarian, dan filter status aktif serta kategori.",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          { "name": "page", "in": "query", "required": false, "schema": { "type": "integer", "default": 1 }, "description": "Nomor halaman data" },
+          { "name": "limit", "in": "query", "required": false, "schema": { "type": "integer", "default": 10 }, "description": "Jumlah data per halaman (maks 100)" },
+          { "name": "search", "in": "query", "required": false, "schema": { "type": "string" }, "description": "Filter pencarian nama, kategori, email, kontak person, atau alamat vendor" },
+          { "name": "category", "in": "query", "required": false, "schema": { "type": "string" }, "description": "Filter vendor berdasarkan kategori spesifik (contoh: Hardware & Komputer, Logistik & Ekspedisi)" },
+          { "name": "is_active", "in": "query", "required": false, "schema": { "type": "boolean" }, "description": "Filter vendor berdasarkan status aktif (true/false)" },
+          { "name": "sort_by", "in": "query", "required": false, "schema": { "type": "string", "default": "created_at", "enum": ["name", "category", "email", "contact_person", "is_active", "created_at", "updated_at"] }, "description": "Kolom pengurutan" },
+          { "name": "order", "in": "query", "required": false, "schema": { "type": "string", "default": "DESC", "enum": ["ASC", "DESC"] }, "description": "Arah pengurutan" }
+        ],
+        "responses": { "200": { "description": "Katalog vendor berhasil diambil beserta metadata pagination" } }
+      },
+      "post": {
+        "tags": ["Vendors"],
+        "summary": "Tambah Vendor Baru",
+        "description": "Menambahkan rekanan vendor baru dan otomatis membuat akun login vendor di tabel users menggunakan nama perusahaan (default password: password123 jika tidak diisi).",
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "category", "email"],
+                "properties": {
+                  "name": { "type": "string", "example": "PT Cipta Sarana Mandiri" },
+                  "category": { "type": "string", "example": "Hardware & Komputer" },
+                  "contact_person": { "type": "string", "example": "Bambang Pamungkas" },
+                  "email": { "type": "string", "format": "email", "example": "sales@ciptasarana.co.id" },
+                  "password": { "type": "string", "example": "password123", "description": "Opsional (default: password123)" },
+                  "address": { "type": "string", "example": "Kawasan Industri Pulo Gadung, Jakarta Timur" },
+                  "is_active": { "type": "boolean", "example": true }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Vendor berhasil ditambahkan beserta akun login user vendor" } }
+      }
+    },
+    "/api/v1/vendors/{id}": {
+      "get": {
+        "tags": ["Vendors"],
+        "summary": "Detail Vendor",
+        "description": "Mengambil detail rekanan vendor berdasarkan ID.",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "200": { "description": "Detail vendor berhasil diambil" } }
+      },
+      "put": {
+        "tags": ["Vendors"],
+        "summary": "Perbarui Vendor",
+        "description": "Mengubah data kontak, kategori, alamat, atau nama perusahaan vendor (otomatis menyinkronkan nama dan email ke akun user vendor terkait).",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": { "type": "string", "example": "PT Cipta Sarana Mandiri Perkasa" },
+                  "category": { "type": "string", "example": "Hardware & Komputer" },
+                  "contact_person": { "type": "string", "example": "Bambang P." },
+                  "email": { "type": "string", "format": "email", "example": "sales@ciptasarana.co.id" },
+                  "address": { "type": "string", "example": "Jl. Pegangsaan Timur No. 12" },
+                  "is_active": { "type": "boolean", "example": true }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Vendor berhasil diperbarui dan akun user vendor disinkronkan" } }
+      },
+      "delete": {
+        "tags": ["Vendors"],
+        "summary": "Hapus Vendor",
+        "description": "Menghapus vendor dari sistem beserta akun login pengguna vendor (Proteksi: tidak dapat dihapus jika vendor memiliki histori transaksi pesanan pembelian / PO).",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "200": { "description": "Vendor dan akun user berhasil dihapus" } }
+      }
+    },
+    "/api/v1/items": {
+      "get": {
+        "tags": ["Items"],
+        "summary": "Katalog Barang",
+        "description": "Mengambil seluruh katalog barang siap pesan dan estimasi harga dengan pagination dan pencarian.",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          { "name": "page", "in": "query", "required": false, "schema": { "type": "integer", "default": 1 }, "description": "Nomor halaman" },
+          { "name": "limit", "in": "query", "required": false, "schema": { "type": "integer", "default": 10 }, "description": "Jumlah data per halaman" },
+          { "name": "search", "in": "query", "required": false, "schema": { "type": "string" }, "description": "Filter pencarian kode, nama barang, atau kategori" },
+          { "name": "sort_by", "in": "query", "required": false, "schema": { "type": "string", "default": "created_at", "enum": ["code", "name", "category", "uom", "price_estimate", "created_at", "updated_at"] }, "description": "Kolom pengurutan" },
+          { "name": "order", "in": "query", "required": false, "schema": { "type": "string", "default": "DESC", "enum": ["ASC", "DESC"] }, "description": "Arah pengurutan" }
+        ],
+        "responses": { "200": { "description": "Katalog barang berhasil diambil" } }
+      },
+      "post": {
+        "tags": ["Items"],
+        "summary": "Tambah Barang Baru",
+        "description": "Menambahkan barang baru ke katalog master.",
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["code", "name", "category", "uom", "price_estimate"],
+                "properties": {
+                  "code": { "type": "string", "example": "IT-003" },
+                  "name": { "type": "string", "example": "Mouse Wireless Logitech MX Master 3S" },
+                  "category": { "type": "string", "example": "Aksesoris IT" },
+                  "uom": { "type": "string", "example": "UNIT" },
+                  "price_estimate": { "type": "number", "example": 1450000 }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Barang baru berhasil ditambahkan" } }
+      }
+    },
+    "/api/v1/items/{id}": {
+      "get": {
+        "tags": ["Items"],
+        "summary": "Detail Barang",
+        "description": "Mengambil detail item barang berdasarkan ID.",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "200": { "description": "Detail barang berhasil diambil" } }
+      },
+      "put": {
+        "tags": ["Items"],
+        "summary": "Perbarui Barang",
+        "description": "Mengubah spesifikasi atau estimasi harga barang.",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": { "type": "string", "example": "Mouse Logitech MX Master 3S Dark Grey" },
+                  "price_estimate": { "type": "number", "example": 1500000 }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Barang berhasil diperbarui" } }
+      },
+      "delete": {
+        "tags": ["Items"],
+        "summary": "Hapus Barang",
+        "description": "Menghapus barang dari katalog master.",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "200": { "description": "Barang berhasil dihapus" } }
+      }
+    },
+    "/api/v1/purchase-requisitions": {
+      "post": {
+        "tags": ["Purchase Requisitions"],
+        "summary": "Buat Purchase Requisition (PR)",
+        "description": "Membuat pengajuan permohonan barang baru oleh Requester, SPV (Approver), atau Admin. Status default PENDING_APPROVAL (langsung diteruskan ke atasan satu divisi) atau DRAFT.",
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["items"],
+                "properties": {
+                  "notes": { "type": "string", "example": "Pengadaan perlengkapan operasional tim IT" },
+                  "status": { "type": "string", "enum": ["DRAFT", "PENDING_APPROVAL"], "default": "PENDING_APPROVAL", "example": "PENDING_APPROVAL" },
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": ["item_id", "qty"],
+                      "properties": {
+                        "item_id": { "type": "string", "format": "uuid", "example": "d51469e3-85e8-4fd6-a664-9f2010c73243" },
+                        "qty": { "type": "integer", "example": 2 },
+                        "estimated_price": { "type": "number", "example": 18500000, "description": "Opsional, jika kosong akan mengambil estimasi harga katalog barang" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "PR berhasil diajukan" } }
+      },
+      "get": {
+        "tags": ["Purchase Requisitions"],
+        "summary": "Daftar Purchase Requisitions",
+        "description": "Mengambil daftar PR dengan pagination & filter status. Requester melihat miliknya, Approver (Manager/SPV) melihat pengajuan dari divisinya (Opsi 1: Departmental), Admin/Purchasing melihat semua.",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          { "name": "page", "in": "query", "required": false, "schema": { "type": "integer", "default": 1 }, "description": "Nomor halaman" },
+          { "name": "limit", "in": "query", "required": false, "schema": { "type": "integer", "default": 10 }, "description": "Jumlah data per halaman" },
+          { "name": "search", "in": "query", "required": false, "schema": { "type": "string" }, "description": "Pencarian nomor PR, catatan, atau nama requester" },
+          { "name": "status", "in": "query", "required": false, "schema": { "type": "string", "enum": ["DRAFT", "PENDING_APPROVAL", "APPROVED", "REJECTED"] }, "description": "Filter status PR" },
+          { "name": "sort_by", "in": "query", "required": false, "schema": { "type": "string", "default": "created_at", "enum": ["pr_number", "status", "created_at", "updated_at"] }, "description": "Kolom pengurutan" },
+          { "name": "order", "in": "query", "required": false, "schema": { "type": "string", "default": "DESC", "enum": ["ASC", "DESC"] }, "description": "Arah pengurutan" }
+        ],
+        "responses": { "200": { "description": "Daftar PR berhasil diambil" } }
+      }
+    },
+    "/api/v1/purchase-requisitions/{id}": {
+      "get": {
+        "tags": ["Purchase Requisitions"],
+        "summary": "Detail Purchase Requisition",
+        "description": "Mengambil detail PR beserta rincian item barang, data requester, atasan divisi, dan status approval.",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "200": { "description": "Detail PR berhasil diambil" } }
+      },
+      "put": {
+        "tags": ["Purchase Requisitions"],
+        "summary": "Perbarui Purchase Requisition (Draft)",
+        "description": "Memperbarui catatan atau daftar item pengajuan PR (Hanya dapat diubah jika status masih DRAFT oleh pembuatnya atau Admin).",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "notes": { "type": "string", "example": "Pembaruan spesifikasi laptop tim engineer" },
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": ["item_id", "qty"],
+                      "properties": {
+                        "item_id": { "type": "string", "format": "uuid" },
+                        "qty": { "type": "integer", "example": 3 },
+                        "estimated_price": { "type": "number", "example": 18500000 }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "PR berhasil diperbarui" } }
+      },
+      "delete": {
+        "tags": ["Purchase Requisitions"],
+        "summary": "Hapus Purchase Requisition (Draft)",
+        "description": "Menghapus pengajuan PR (Hanya diperbolehkan saat status PR masih DRAFT).",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "200": { "description": "PR berhasil dihapus" } }
+      }
+    },
+    "/api/v1/purchase-requisitions/{id}/approve": {
+      "put": {
+        "tags": ["Purchase Requisitions"],
+        "summary": "Approve Purchase Requisition",
+        "description": "Menyetujui pengajuan PR oleh Manager/Approver dari divisi yang sama (Opsi 1: Departmental Approval). Dilengkapi proteksi anti self-approval (pengaju dilarang menyetujui pengajuannya sendiri).",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": { "type": "string", "enum": ["APPROVED"], "default": "APPROVED", "example": "APPROVED" },
+                  "notes": { "type": "string", "example": "Disetujui untuk mendukung operasional kerja tim" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "PR berhasil disetujui" } }
+      }
+    },
+    "/api/v1/purchase-requisitions/{id}/reject": {
+      "put": {
+        "tags": ["Purchase Requisitions"],
+        "summary": "Reject Purchase Requisition",
+        "description": "Menolak pengajuan PR oleh Manager/Approver dari divisi yang sama disertai catatan alasan penolakan.",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "notes": { "type": "string", "example": "Ditolak: anggaran belanja divisi periode ini telah melampaui kuota" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "PR berhasil ditolak" } }
+      }
+    },
+    "/api/v1/purchase-orders/from-purchase-requisition/{purchase_requisition_id}": {
+      "post": {
+        "tags": ["Purchase Orders"],
+        "summary": "Buat PO dari PR yang Disetujui",
+        "description": "Purchasing menerbitkan PO resmi dengan menentukan vendor tujuan. Rincian seluruh barang otomatis disalin dari tabel pr_lines sesuai relasi purchase_requisition_id.",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [{ "name": "purchase_requisition_id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["vendor_id"],
+                "properties": {
+                  "vendor_id": { "type": "string", "format": "uuid", "example": "4490f2aa-a8ea-4623-a55d-db96cf0b5665", "description": "ID vendor terpilih yang akan menyuplai pesanan" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "PO berhasil dibuat & PDF dikirim ke vendor" } }
+      }
+    },
+    "/api/v1/purchase-orders": {
+      "get": {
+        "tags": ["Purchase Orders"],
+        "summary": "Daftar Purchase Orders",
+        "description": "Mengambil daftar PO dengan pagination & filter status. Tim Purchasing/PPIC/Admin melihat semua, sedangkan Vendor hanya melihat pesanan yang ditujukan ke perusahaannya.",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          { "name": "page", "in": "query", "required": false, "schema": { "type": "integer", "default": 1 }, "description": "Nomor halaman" },
+          { "name": "limit", "in": "query", "required": false, "schema": { "type": "integer", "default": 10 }, "description": "Jumlah data per halaman" },
+          { "name": "search", "in": "query", "required": false, "schema": { "type": "string" }, "description": "Pencarian nomor PO, nama vendor, atau nama purchasing" },
+          { "name": "status", "in": "query", "required": false, "schema": { "type": "string", "enum": ["DRAFT", "SENT_TO_VENDOR", "SJ_PENDING_VERIFICATION", "SJ_REVISED", "READY_FOR_GR", "GR_COMPLETED"] }, "description": "Filter status PO" },
+          { "name": "vendor_id", "in": "query", "required": false, "schema": { "type": "string", "format": "uuid" }, "description": "Filter per ID vendor (untuk Purchasing/Admin)" },
+          { "name": "sort_by", "in": "query", "required": false, "schema": { "type": "string", "default": "created_at", "enum": ["po_number", "status", "total_amount", "created_at", "updated_at"] }, "description": "Kolom pengurutan" },
+          { "name": "order", "in": "query", "required": false, "schema": { "type": "string", "default": "DESC", "enum": ["ASC", "DESC"] }, "description": "Arah pengurutan" }
+        ],
+        "responses": { "200": { "description": "Daftar PO berhasil diambil" } }
+      }
+    },
+    "/api/v1/purchase-orders/documents/{filename}": {
+      "get": {
+        "tags": ["Purchase Orders"],
+        "summary": "Unduh / Preview Dokumen PDF Purchase Order",
+        "description": "Menampilkan atau mengunduh dokumen PDF resmi Purchase Order sesuai nomor PO (contoh: PO-202610-0001.pdf). Dapat dibuka langsung di tab browser atau diunduh via Postman/cURL.",
+        "security": [],
+        "parameters": [
+          { "name": "filename", "in": "path", "required": true, "schema": { "type": "string", "example": "PO-202610-0001.pdf" }, "description": "Nama file dokumen PDF PO" }
+        ],
+        "responses": {
+          "200": {
+            "description": "File PDF dokumen Purchase Order",
+            "content": {
+              "application/pdf": {
+                "schema": { "type": "string", "format": "binary" }
+              }
+            }
+          },
+          "404": { "description": "Dokumen Purchase Order tidak ditemukan" }
+        }
+      }
+    },
+    "/api/v1/purchase-orders/{id}": {
+      "get": {
+        "tags": ["Purchase Orders"],
+        "summary": "Detail Purchase Order",
+        "description": "Mengambil detail PO beserta line items, informasi vendor, data purchasing, dan link PDF.",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "200": { "description": "Detail PO berhasil diambil" } }
+      },
+      "delete": {
+        "tags": ["Purchase Orders"],
+        "summary": "Hapus Purchase Order (Draft)",
+        "description": "Menghapus Purchase Order (hanya diperbolehkan jika status PO masih DRAFT).",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "200": { "description": "PO berhasil dihapus" } }
+      }
+    },
+    "/api/v1/purchase-orders/{id}/status": {
+      "put": {
+        "tags": ["Purchase Orders"],
+        "summary": "Perbarui Status Purchase Order",
+        "description": "Mengubah status PO secara manual oleh Purchasing atau Administrator.",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["status"],
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": ["DRAFT", "SENT_TO_VENDOR", "SJ_PENDING_VERIFICATION", "SJ_REVISED", "READY_FOR_GR", "GR_COMPLETED"],
+                    "example": "SENT_TO_VENDOR"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Status PO berhasil diperbarui" } }
+      }
+    },
+    "/api/v1/goods-receipts": {
+      "get": {
+        "tags": ["Goods Receipts"],
+        "summary": "Daftar Goods Receipts",
+        "description": "Mengambil seluruh data penerimaan barang dan status verifikasi Surat Jalan. Vendor otomatis hanya melihat data miliknya.",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          { "name": "page", "in": "query", "required": false, "schema": { "type": "integer", "default": 1 }, "description": "Nomor halaman" },
+          { "name": "limit", "in": "query", "required": false, "schema": { "type": "integer", "default": 10 }, "description": "Jumlah data per halaman" },
+          { "name": "search", "in": "query", "required": false, "schema": { "type": "string" }, "description": "Pencarian nomor Surat Jalan, nomor GR, nomor PO, atau nama vendor" },
+          { "name": "status", "in": "query", "required": false, "schema": { "type": "string", "enum": ["WAITING_SJ", "SJ_UPLOADED", "SJ_REVISED", "SJ_APPROVED", "GR_COMPLETED"] }, "description": "Filter status penerimaan" },
+          { "name": "sort_by", "in": "query", "required": false, "schema": { "type": "string", "default": "created_at", "enum": ["surat_jalan_no", "gr_number", "status", "created_at", "updated_at"] }, "description": "Kolom pengurutan" },
+          { "name": "order", "in": "query", "required": false, "schema": { "type": "string", "default": "DESC", "enum": ["ASC", "DESC"] }, "description": "Arah pengurutan" }
+        ],
+        "responses": { "200": { "description": "Daftar Goods Receipt berhasil diambil" } }
+      }
+    },
+    "/api/v1/goods-receipts/{id}": {
+      "get": {
+        "tags": ["Goods Receipts"],
+        "summary": "Detail Goods Receipt",
+        "description": "Mengambil rincian Goods Receipt termasuk dokumen Surat Jalan, data PO terkait, verifikasi purchasing, dan inspeksi PPIC.",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "200": { "description": "Detail Goods Receipt berhasil diambil" } }
+      }
+    },
+    "/api/v1/goods-receipts/{id}/document": {
+      "get": {
+        "tags": ["Goods Receipts"],
+        "summary": "Lihat / Unduh Dokumen Surat Jalan / GR",
+        "description": "Membuka langsung dokumen fisik Surat Jalan (Vendor) atau dokumen Goods Receipt (PPIC) baik yang tersimpan di server lokal maupun Cloudinary.",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" }, "description": "ID Goods Receipt" },
+          { "name": "type", "in": "query", "required": false, "schema": { "type": "string", "enum": ["sj", "gr"], "default": "sj" }, "description": "Jenis dokumen: sj (Surat Jalan Vendor) atau gr (Dokumen GR PPIC)" }
+        ],
+        "responses": { "200": { "description": "File dokumen berhasil diunduh / ditampilkan" } }
+      }
+    },
+    "/api/v1/goods-receipts/upload-surat-jalan/{purchase_order_id}": {
+      "post": {
+        "tags": ["Goods Receipts"],
+        "summary": "Upload Surat Jalan (Vendor)",
+        "description": "Vendor mengunggah dokumen Surat Jalan (PDF / Image) sebagai Request for GR.",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          { "name": "purchase_order_id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" }, "description": "ID Purchase Order" },
+          { "name": "surat_jalan_no", "in": "query", "required": false, "schema": { "type": "string", "example": "SJ-2026-X-001" }, "description": "Opsional: Nomor Surat Jalan (dapat dikirim via Query Parameter atau Form Data)" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["file"],
+                "properties": {
+                  "surat_jalan_no": { "type": "string", "example": "SJ-2026-X-001", "description": "Nomor Surat Jalan dari Vendor" },
+                  "file": { "type": "string", "format": "binary", "description": "File dokumen Surat Jalan (PDF / Gambar JPG, PNG)" }
+                }
+              },
+              "encoding": {
+                "surat_jalan_no": {
+                  "contentType": "text/plain"
+                }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Surat Jalan berhasil diunggah" } }
+      }
+    },
+    "/api/v1/goods-receipts/{id}/verify-surat-jalan": {
+      "put": {
+        "tags": ["Goods Receipts"],
+        "summary": "Verifikasi Surat Jalan (Purchasing)",
+        "description": "Purchasing memvalidasi kesesuaian dokumen Surat Jalan (SJ_APPROVED / SJ_REVISED).",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["status"],
+                "properties": {
+                  "status": { "type": "string", "enum": ["SJ_APPROVED", "SJ_REVISED"], "example": "SJ_APPROVED" },
+                  "verification_notes": { "type": "string", "example": "Dokumen Surat Jalan valid dan sesuai spesifikasi PO" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Verifikasi berhasil disimpan" } }
+      }
+    },
+    "/api/v1/goods-receipts/{id}/complete": {
+      "put": {
+        "tags": ["Goods Receipts"],
+        "summary": "Penyelesaian Goods Receipt (PPIC)",
+        "description": "PPIC / Warehouse menginspeksi fisik barang, mengunggah dokumen/laporan GR, dan menyelesaikan proses GR.",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": { "type": "string", "format": "binary", "description": "File dokumen Goods Receipt / foto inspeksi fisik (PDF / Gambar)" },
+                  "notes": { "type": "string", "example": "Barang fisik lengkap dan lolos uji kualitas gudang", "description": "Catatan inspeksi fisik" }
+                }
+              }
+            },
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "notes": { "type": "string", "example": "Barang fisik lengkap dan lolos uji kualitas gudang" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Goods Receipt selesai, notifikasi dikirim ke vendor" } }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Masukkan JWT token yang diperoleh dari endpoint /api/v1/auth/login"
+      }
+    }
+  }
+}

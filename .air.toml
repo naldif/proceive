@@ -1,0 +1,34 @@
+# Konfigurasi Air Hot Reload untuk Proceive API
+root = "."
+tmp_dir = "tmp"
+
+[build]
+  # Build mengarah ke ./cmd/api tempat main.go berada
+  cmd = "go build -o ./tmp/main.exe ./cmd/api"
+  bin = "tmp/main.exe"
+  entrypoint = "tmp/main.exe"
+  include_ext = ["go", "html", "json", "yaml", "yml", "env"]
+  exclude_dir = ["tmp", "vendor", ".git"]
+  include_dir = []
+  exclude_file = []
+  exclude_regex = ["_test\\.go$"]
+  exclude_unchanged = false
+  follow_symlink = false
+  log = "build-errors.log"
+  delay = 500
+  stop_on_error = true
+  send_interrupt = false
+  kill_delay = 500
+
+[log]
+  time = true
+  main_only = false
+
+[color]
+  main = "magenta"
+  watcher = "cyan"
+  build = "yellow"
+  runner = "green"
+
+[misc]
+  clean_on_exit = true

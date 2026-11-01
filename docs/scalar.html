@@ -1,0 +1,813 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Proceive API - Scalar Documentation</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+      :root {
+        --bg-page: #09090b;
+        --border-subtle: #27272a;
+        --text-primary: #fafafa;
+        --text-secondary: #a1a1aa;
+        --text-muted: #71717a;
+      }
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        background: var(--bg-page);
+        color: var(--text-primary);
+      }
+
+      /* Sembunyikan tombol toolbar bawaan di kanan atas */
+      header button[aria-label*="Configure"],
+      header button[aria-label*="Share"],
+      header button[title*="Configure"],
+      header button[title*="Share"],
+      header a[aria-label*="Sign in"],
+      header button[aria-label*="Sign in"] {
+        display: none !important;
+      }
+
+      /* Menu Auth di Pojok Kanan Atas - Menggantikan tombol kanan yang disembunyikan */
+      .top-auth-bar {
+        position: fixed;
+        top: 11px;
+        right: 18px;
+        z-index: 99999;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: #18181b;
+        border: 1px solid #27272a;
+        border-radius: 9999px;
+        padding: 4px 10px 4px 12px;
+        font-family: inherit;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+        transition: all 0.2s ease;
+      }
+      .top-auth-bar:hover {
+        border-color: #3f3f46;
+      }
+
+      .status-indicator {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        font-weight: 500;
+        color: #d4d4d8;
+      }
+      .status-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #71717a;
+        flex-shrink: 0;
+      }
+      .status-logged-in .status-dot {
+        background: #ffffff;
+        box-shadow: 0 0 6px rgba(255, 255, 255, 0.5);
+      }
+      .status-text {
+        font-size: 12px;
+        color: #a1a1aa;
+      }
+
+      .auth-user-info {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 13px;
+        color: #ffffff;
+        font-weight: 600;
+      }
+      .role-badge {
+        display: inline-block;
+        padding: 1px 7px;
+        border-radius: 4px;
+        font-size: 10px;
+        font-weight: 600;
+        text-transform: uppercase;
+        background: #27272a;
+        color: #e4e4e7;
+        border: 1px solid #3f3f46;
+        letter-spacing: 0.04em;
+      }
+
+      .btn-auth-action {
+        border: 1px solid #3f3f46;
+        background: #27272a;
+        color: #fafafa;
+        padding: 5px 12px;
+        border-radius: 9999px;
+        font-family: inherit;
+        font-size: 12px;
+        font-weight: 500;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.15s ease;
+      }
+      .btn-auth-action:hover {
+        background: #3f3f46;
+        border-color: #52525b;
+        color: #ffffff;
+      }
+      .btn-auth-action:active {
+        transform: scale(0.98);
+      }
+
+      /* Minimalist Modal - Clean White Theme */
+      .modal-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
+        z-index: 100000;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+      }
+      .modal-overlay.active {
+        display: flex;
+      }
+
+      .modal-card {
+        background: #ffffff;
+        color: #09090b;
+        border: 1px solid #e4e4e7;
+        border-radius: 14px;
+        width: 100%;
+        max-width: 420px;
+        box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.05);
+        overflow: hidden;
+      }
+
+      .modal-header {
+        padding: 18px 20px;
+        border-bottom: 1px solid #f4f4f5;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .modal-header h3 {
+        margin: 0;
+        font-size: 15px;
+        font-weight: 600;
+        color: #09090b;
+      }
+      .modal-close {
+        background: transparent;
+        border: none;
+        color: #71717a;
+        font-size: 20px;
+        cursor: pointer;
+        padding: 2px;
+        line-height: 1;
+        border-radius: 4px;
+      }
+      .modal-close:hover {
+        color: #09090b;
+      }
+
+      .modal-body {
+        padding: 20px;
+      }
+      .form-group {
+        margin-bottom: 14px;
+      }
+      .form-group label {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 12px;
+        font-weight: 500;
+        color: #52525b;
+      }
+      .form-input {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 9px 12px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        color: #0f172a;
+        font-family: inherit;
+        font-size: 13px;
+        outline: none;
+        transition: all 0.15s;
+      }
+      .form-input:focus {
+        background: #ffffff;
+        border-color: #09090b;
+        box-shadow: 0 0 0 2px rgba(9, 9, 11, 0.08);
+      }
+
+      .quick-select-label {
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        color: #71717a;
+        margin-bottom: 8px;
+        letter-spacing: 0.05em;
+      }
+      .quick-users {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 6px;
+        margin-bottom: 18px;
+      }
+      .quick-user-btn {
+        background: #f4f4f5;
+        border: 1px solid #e4e4e7;
+        border-radius: 8px;
+        padding: 8px 10px;
+        text-align: left;
+        color: #09090b;
+        cursor: pointer;
+        transition: all 0.15s;
+        font-family: inherit;
+      }
+      .quick-user-btn:hover {
+        border-color: #09090b;
+        background: #e4e4e7;
+      }
+      .quick-user-role {
+        font-size: 11px;
+        font-weight: 600;
+        color: #09090b;
+      }
+      .quick-user-email {
+        font-size: 10px;
+        color: #71717a;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .btn-submit-login {
+        width: 100%;
+        padding: 10px;
+        border-radius: 8px;
+        border: none;
+        background: #09090b;
+        color: #ffffff;
+        font-family: inherit;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.15s;
+      }
+      .btn-submit-login:hover {
+        background: #27272a;
+      }
+      .btn-submit-login:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      /* Bottom-Right Clean White Toast Notification */
+      .toast-container {
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        z-index: 100001;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        pointer-events: none;
+      }
+      .toast {
+        pointer-events: auto;
+        min-width: 320px;
+        max-width: 400px;
+        background: #ffffff;
+        color: #09090b;
+        border: 1px solid #e4e4e7;
+        border-radius: 10px;
+        padding: 14px 16px;
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
+        transform: translateY(16px);
+        opacity: 0;
+        transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+      .toast.show {
+        transform: translateY(0);
+        opacity: 1;
+      }
+
+      .toast-icon {
+        width: 18px;
+        height: 18px;
+        flex-shrink: 0;
+        margin-top: 1px;
+      }
+      .toast-icon svg {
+        width: 100%;
+        height: 100%;
+      }
+
+      .toast-content {
+        flex: 1;
+      }
+      .toast-title {
+        font-size: 13px;
+        font-weight: 600;
+        color: #09090b;
+        margin-bottom: 2px;
+      }
+      .toast-message {
+        font-size: 12px;
+        color: #52525b;
+        line-height: 1.4;
+      }
+
+      .toast-close {
+        background: transparent;
+        border: none;
+        color: #a1a1aa;
+        font-size: 16px;
+        cursor: pointer;
+        padding: 0;
+        line-height: 1;
+      }
+      .toast-close:hover {
+        color: #09090b;
+      }
+
+      /* Clean Error Toast Variant */
+      .toast.toast-error {
+        background: #18181b;
+        color: #ffffff;
+        border: 1px solid #3f3f46;
+      }
+      .toast.toast-error .toast-title {
+        color: #ffffff;
+      }
+      .toast.toast-error .toast-message {
+        color: #a1a1aa;
+      }
+      .toast.toast-error .toast-close {
+        color: #71717a;
+      }
+      .toast.toast-error .toast-close:hover {
+        color: #ffffff;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Top Right Auth Status Indicator -->
+    <div class="top-auth-bar" id="topAuthBar">
+      <div id="authStatusContent" class="status-indicator">
+        <span class="status-dot"></span>
+        <span class="status-text">Belum login</span>
+      </div>
+      <div id="authActionBtn">
+        <button class="btn-auth-action" onclick="openLoginModal()">
+          <span>Masuk</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Login Modal -->
+    <div class="modal-overlay" id="loginModal">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3>Masuk ke Akun</h3>
+          <button class="modal-close" onclick="closeLoginModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="quick-select-label">Pilih Akun Cepat</div>
+          <div class="quick-users">
+            <button class="quick-user-btn" onclick="fillCredential('admin@proceive.com')">
+              <div class="quick-user-role">ADMIN</div>
+              <div class="quick-user-email">admin@proceive.com</div>
+            </button>
+            <button class="quick-user-btn" onclick="fillCredential('requester@proceive.com')">
+              <div class="quick-user-role">REQUESTER</div>
+              <div class="quick-user-email">requester@proceive.com</div>
+            </button>
+            <button class="quick-user-btn" onclick="fillCredential('approver@proceive.com')">
+              <div class="quick-user-role">APPROVER</div>
+              <div class="quick-user-email">approver@proceive.com</div>
+            </button>
+            <button class="quick-user-btn" onclick="fillCredential('purchasing@proceive.com')">
+              <div class="quick-user-role">PURCHASING</div>
+              <div class="quick-user-email">purchasing@proceive.com</div>
+            </button>
+            <button class="quick-user-btn" onclick="fillCredential('vendor1@proceive.com')">
+              <div class="quick-user-role">VENDOR</div>
+              <div class="quick-user-email">vendor1@proceive.com</div>
+            </button>
+            <button class="quick-user-btn" onclick="fillCredential('ppic@proceive.com')">
+              <div class="quick-user-role">PPIC / GUDANG</div>
+              <div class="quick-user-email">ppic@proceive.com</div>
+            </button>
+          </div>
+
+          <form id="loginForm" onsubmit="handleLoginSubmit(event)">
+            <div class="form-group">
+              <label for="emailInput">Email</label>
+              <input type="email" id="emailInput" class="form-input" placeholder="nama@proceive.com" required value="admin@proceive.com" />
+            </div>
+            <div class="form-group">
+              <label for="passwordInput">Password</label>
+              <input type="password" id="passwordInput" class="form-input" placeholder="Password" required value="password123" />
+            </div>
+            <button type="submit" id="submitBtn" class="btn-submit-login">
+              Masuk
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Right Toast Notification Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Scalar API Reference Script -->
+    <script
+      id="api-reference"
+      data-url="/docs/openapi.json"
+    ></script>
+
+    <script>
+      const TOKEN_KEY = 'proceive_token';
+      const USER_KEY = 'proceive_user';
+
+      // Helper function untuk sinkronisasi sesi login dari modal maupun Scalar Test Request
+      function syncLoginSession(token, user) {
+        if (!token) return;
+        localStorage.setItem(TOKEN_KEY, token);
+        if (user) {
+          localStorage.setItem(USER_KEY, JSON.stringify(user));
+        }
+        document.cookie = "access_token=" + encodeURIComponent(token) + "; path=/; max-age=604800; SameSite=Lax";
+        renderAuthBar();
+        updateScalarAuth(token);
+        const displayName = user ? (user.name || user.email) : 'Pengguna';
+        const roleBadge = user && user.role ? ' (' + user.role + ')' : '';
+        showToast(
+          'success',
+          'Berhasil Masuk',
+          'Masuk sebagai ' + displayName + roleBadge + '. Status login dan token otorisasi aktif.'
+        );
+      }
+
+      function syncLogoutSession() {
+        localStorage.removeItem(TOKEN_KEY);
+        localStorage.removeItem(USER_KEY);
+        document.cookie = "access_token=; path=/; max-age=0; SameSite=Lax";
+        renderAuthBar();
+        updateScalarAuth('');
+        showToast('success', 'Berhasil Keluar', 'Sesi login telah selesai.');
+      }
+
+      // 1. Global Fetch Interceptor: Menyuntikkan Bearer token, menangani multipart boundary, & menangkap respon login dari Test Request API Scalar
+      const origFetch = window.fetch;
+      window.fetch = async function(resource, init) {
+        const token = localStorage.getItem(TOKEN_KEY);
+        let url = typeof resource === 'string' ? resource : (resource && resource.url ? resource.url : '');
+
+        // Otomatis hapus header 'content-type: multipart/form-data' manual jika body bertipe FormData
+        // agar browser secara otomatis meng-generate parameter '; boundary=...' yang valid
+        if (init && init.body && (init.body instanceof FormData || Object.prototype.toString.call(init.body) === '[object FormData]')) {
+          if (init.headers) {
+            if (init.headers instanceof Headers) {
+              init.headers.delete('content-type');
+              init.headers.delete('Content-Type');
+            } else if (Array.isArray(init.headers)) {
+              init.headers = init.headers.filter(pair => pair[0].toLowerCase() !== 'content-type');
+            } else if (typeof init.headers === 'object') {
+              for (const k of Object.keys(init.headers)) {
+                if (k.toLowerCase() === 'content-type') {
+                  delete init.headers[k];
+                }
+              }
+            }
+          }
+        }
+
+        if (resource instanceof Request) {
+          const ct = resource.headers.get('content-type');
+          if (ct && ct.toLowerCase().includes('multipart/form-data') && !ct.toLowerCase().includes('boundary')) {
+            try {
+              const newHeaders = new Headers(resource.headers);
+              newHeaders.delete('content-type');
+              newHeaders.delete('Content-Type');
+              resource = new Request(resource, { headers: newHeaders });
+            } catch(e) {}
+          }
+        }
+
+        if (token && url && url.includes('/api/v1/')) {
+          init = init || {};
+          let headers = init.headers;
+          if (!headers) {
+            init.headers = { 'Authorization': 'Bearer ' + token };
+          } else if (headers instanceof Headers) {
+            if (!headers.has('Authorization')) {
+              headers.set('Authorization', 'Bearer ' + token);
+            }
+          } else if (Array.isArray(headers)) {
+            const hasAuth = headers.some(pair => pair[0].toLowerCase() === 'authorization');
+            if (!hasAuth) {
+              headers.push(['Authorization', 'Bearer ' + token]);
+            }
+          } else if (typeof headers === 'object') {
+            if (!headers['Authorization'] && !headers['authorization']) {
+              headers['Authorization'] = 'Bearer ' + token;
+            }
+          }
+          if (!init.credentials) {
+            init.credentials = 'same-origin';
+          }
+        }
+
+        const response = await origFetch.call(this, resource, init);
+
+        // Intercept respon login / logout otomatis dari tombol Test Request Scalar
+        if (url && response && response.ok) {
+          if (url.includes('/api/v1/auth/login')) {
+            try {
+              const clone = response.clone();
+              clone.json().then(data => {
+                if (data && data.success && data.data && data.data.token) {
+                  syncLoginSession(data.data.token, data.data.user);
+                }
+              }).catch(() => {});
+            } catch (e) {}
+          } else if (url.includes('/api/v1/auth/logout')) {
+            syncLogoutSession();
+          }
+        }
+
+        return response;
+      };
+
+      // 2. Global XMLHttpRequest Interceptor untuk memastikan sinkronisasi jika Scalar menggunakan XHR
+      const origXhrOpen = XMLHttpRequest.prototype.open;
+      const origXhrSend = XMLHttpRequest.prototype.send;
+      const origXhrSetRequestHeader = XMLHttpRequest.prototype.setRequestHeader;
+
+      XMLHttpRequest.prototype.setRequestHeader = function(header, value) {
+        if (header && header.toLowerCase() === 'content-type' && typeof value === 'string' && value.toLowerCase().includes('multipart/form-data') && !value.toLowerCase().includes('boundary')) {
+          // Abaikan manual content-type multipart/form-data tanpa boundary
+          return;
+        }
+        return origXhrSetRequestHeader.apply(this, arguments);
+      };
+
+      XMLHttpRequest.prototype.open = function(method, url) {
+        this._reqUrl = url;
+        this._reqMethod = method;
+        return origXhrOpen.apply(this, arguments);
+      };
+      XMLHttpRequest.prototype.send = function(body) {
+        const token = localStorage.getItem(TOKEN_KEY);
+        if (token && this._reqUrl && this._reqUrl.includes('/api/v1/')) {
+          try {
+            this.setRequestHeader('Authorization', 'Bearer ' + token);
+          } catch(e) {}
+        }
+        this.addEventListener('load', function() {
+          if (this._reqUrl && this.status >= 200 && this.status < 300) {
+            if (this._reqUrl.includes('/api/v1/auth/login')) {
+              try {
+                const data = JSON.parse(this.responseText);
+                if (data && data.success && data.data && data.data.token) {
+                  syncLoginSession(data.data.token, data.data.user);
+                }
+              } catch(e) {}
+            } else if (this._reqUrl.includes('/api/v1/auth/logout')) {
+              syncLogoutSession();
+            }
+          }
+        });
+        return origXhrSend.apply(this, arguments);
+      };
+
+      // Setup Scalar Data Configuration with BearerAuth security scheme
+      function updateScalarAuth(token) {
+        const config = {
+          theme: 'default',
+          layout: 'modern',
+          showSidebar: true,
+          hideDeveloperTools: true,
+          hideClientButton: true,
+          hideDownloadButton: true,
+          documentDownloadType: 'none',
+          telemetry: false,
+          persistAuth: true,
+          authentication: {
+            preferredSecurityScheme: 'BearerAuth',
+            securitySchemes: {
+              BearerAuth: {
+                token: token || ''
+              }
+            },
+            http: {
+              BearerAuth: {
+                token: token || ''
+              }
+            }
+          }
+        };
+        const el = document.getElementById('api-reference');
+        if (el) {
+          el.dataset.configuration = JSON.stringify(config);
+        }
+      }
+
+      // Initialize initial auth state
+      const initialToken = localStorage.getItem(TOKEN_KEY) || '';
+      updateScalarAuth(initialToken);
+      if (initialToken) {
+        document.cookie = "access_token=" + encodeURIComponent(initialToken) + "; path=/; max-age=604800; SameSite=Lax";
+      }
+
+      // Render Top Right Status Bar
+      function renderAuthBar() {
+        const token = localStorage.getItem(TOKEN_KEY);
+        const userStr = localStorage.getItem(USER_KEY);
+        const statusContent = document.getElementById('authStatusContent');
+        const actionBtn = document.getElementById('authActionBtn');
+
+        if (token && userStr) {
+          try {
+            const user = JSON.parse(userStr);
+            statusContent.className = 'status-indicator status-logged-in';
+            statusContent.innerHTML = 
+              '<span class="status-dot"></span>' +
+              '<span class="auth-user-info">' +
+                '<span>' + (user.name || user.email) + '</span>' +
+                '<span class="role-badge">' + (user.role || 'USER') + '</span>' +
+              '</span>';
+            actionBtn.innerHTML = 
+              '<button class="btn-auth-action" onclick="handleLogout()" title="Keluar">' +
+                '<span>Keluar</span>' +
+              '</button>';
+            return;
+          } catch (e) {
+            console.error('Invalid user JSON', e);
+          }
+        }
+
+        // Default: Logged Out
+        statusContent.className = 'status-indicator';
+        statusContent.innerHTML = 
+          '<span class="status-dot"></span>' +
+          '<span class="status-text">Belum login</span>';
+        actionBtn.innerHTML = 
+          '<button class="btn-auth-action" onclick="openLoginModal()">' +
+            '<span>Masuk</span>' +
+          '</button>';
+      }
+
+      // Modal Functions
+      function openLoginModal() {
+        document.getElementById('loginModal').classList.add('active');
+        document.getElementById('emailInput').focus();
+      }
+      function closeLoginModal() {
+        document.getElementById('loginModal').classList.remove('active');
+      }
+      function fillCredential(email) {
+        document.getElementById('emailInput').value = email;
+        document.getElementById('passwordInput').value = 'password123';
+      }
+
+      window.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') closeLoginModal();
+      });
+      document.getElementById('loginModal').addEventListener('click', function(e) {
+        if (e.target.id === 'loginModal') closeLoginModal();
+      });
+
+      // Bottom Right Toast Notifications (Clean White)
+      function showToast(type, title, message, duration = 4000) {
+        const container = document.getElementById('toastContainer');
+        const toast = document.createElement('div');
+        toast.className = 'toast toast-' + type;
+
+        const checkIcon = '<svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>';
+        const alertIcon = '<svg fill="none" stroke="#ef4444" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>';
+        const iconSvg = type === 'success' ? checkIcon : alertIcon;
+
+        toast.innerHTML = 
+          '<div class="toast-icon">' + iconSvg + '</div>' +
+          '<div class="toast-content">' +
+            '<div class="toast-title">' + title + '</div>' +
+            '<div class="toast-message">' + message + '</div>' +
+          '</div>' +
+          '<button class="toast-close" onclick="this.parentElement.remove()">&times;</button>';
+
+        container.appendChild(toast);
+        setTimeout(function() { toast.classList.add('show'); }, 10);
+
+        setTimeout(function() {
+          toast.classList.remove('show');
+          setTimeout(function() { toast.remove(); }, 300);
+        }, duration);
+      }
+
+      // Handle Login Submit
+      async function handleLoginSubmit(event) {
+        event.preventDefault();
+        const email = document.getElementById('emailInput').value.trim();
+        const password = document.getElementById('passwordInput').value;
+        const submitBtn = document.getElementById('submitBtn');
+
+        submitBtn.disabled = true;
+        submitBtn.innerText = 'Memproses...';
+
+        try {
+          const res = await fetch('/api/v1/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: email, password: password })
+          });
+
+          const data = await res.json();
+
+          if (res.ok && data.success) {
+            closeLoginModal();
+          } else {
+            const errMsg = data.message || 'Email atau password tidak sesuai.';
+            showToast('error', 'Gagal Masuk', errMsg);
+          }
+        } catch (err) {
+          showToast('error', 'Gagal Masuk', 'Koneksi ke server terputus.');
+        } finally {
+          submitBtn.disabled = false;
+          submitBtn.innerText = 'Masuk';
+        }
+      }
+
+      // Handle Logout
+      async function handleLogout() {
+        const token = localStorage.getItem(TOKEN_KEY);
+        try {
+          if (token) {
+            await fetch('/api/v1/auth/logout', {
+              method: 'POST',
+              headers: { 'Authorization': 'Bearer ' + token }
+            });
+          }
+        } catch (e) {
+          console.error('Error saat logout ke server', e);
+        }
+        syncLogoutSession();
+      }
+
+      // Initial Render
+      renderAuthBar();
+
+      // Sembunyikan HANYA tombol-tombol spesifik di area paling kanan layar tanpa pernah menyentuh parent atau sisi kiri
+      function hideScalarRightButtonsOnly() {
+        const header = document.querySelector('header');
+        if (!header) return;
+
+        const authBar = document.getElementById('topAuthBar');
+
+        // Cari tombol atau link di dalam header
+        const allElements = header.querySelectorAll('button, a, [role="button"]');
+        allElements.forEach(el => {
+          // Abaikan elemen dari auth bar kita sendiri
+          if (authBar && (el === authBar || authBar.contains(el))) return;
+
+          // Hanya periksa elemen yang posisinya berada di 320px paling kanan dari tepi layar
+          const rect = el.getBoundingClientRect();
+          const isFarRight = rect.right > (window.innerWidth - 320);
+
+          if (isFarRight) {
+            const txt = (el.textContent || '').toLowerCase();
+            const aria = (el.getAttribute('aria-label') || '').toLowerCase();
+            const isSearch = txt.includes('search') || aria.includes('search') || el.querySelector('input');
+            if (!isSearch) {
+              // HANYA sembunyikan tombol itu sendiri, JANGAN PERNAH menyembunyikan parent
+              el.style.setProperty('display', 'none', 'important');
+            }
+          }
+        });
+      }
+
+      const scalarHeaderObserver = new MutationObserver(hideScalarRightButtonsOnly);
+      scalarHeaderObserver.observe(document.documentElement, { childList: true, subtree: true });
+      window.addEventListener('DOMContentLoaded', hideScalarRightButtonsOnly);
+      window.addEventListener('load', hideScalarRightButtonsOnly);
+      setInterval(hideScalarRightButtonsOnly, 250);
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
+  </body>
+</html>
