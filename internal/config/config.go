@@ -22,6 +22,7 @@ type AppConfig struct {
 }
 
 type DatabaseConfig struct {
+	URL         string
 	Host        string
 	Port        string
 	User        string
@@ -57,16 +58,17 @@ func LoadConfig() *Config {
 		App: AppConfig{
 			Name: getEnv("APP_NAME", "proceive"),
 			Env:  getEnv("APP_ENV", "development"),
-			Port: getEnv("APP_PORT", "8080"),
+			Port: getEnv("PORT", getEnv("APP_PORT", "8080")), // Otomatis mendeteksi PORT dinamis dari Railway
 		},
 		Database: DatabaseConfig{
-			Host:        getEnv("DB_HOST", "localhost"),
-			Port:        getEnv("DB_PORT", "5432"),
-			User:        getEnv("DB_USER", "postgres"),
-			Password:    getEnv("DB_PASSWORD", "postgres"),
-			Name:        getEnv("DB_NAME", "proceive"),
+			URL:         getEnv("DATABASE_URL", getEnv("DATABASE_PUBLIC_URL", "")),
+			Host:        getEnv("DB_HOST", getEnv("PGHOST", "localhost")),
+			Port:        getEnv("DB_PORT", getEnv("PGPORT", "5432")),
+			User:        getEnv("DB_USER", getEnv("PGUSER", "postgres")),
+			Password:    getEnv("DB_PASSWORD", getEnv("PGPASSWORD", "postgres")),
+			Name:        getEnv("DB_NAME", getEnv("PGDATABASE", "proceive")),
 			SSLMode:     getEnv("DB_SSLMODE", "disable"),
-			AutoMigrate: getEnv("DB_AUTO_MIGRATE", "false") == "true",
+			AutoMigrate: getEnv("DB_AUTO_MIGRATE", "true") == "true", // Default true agar otomatis migrate & seeder di Railway
 		},
 		JWT: JWTConfig{
 			Secret:          getEnv("JWT_SECRET", "proceive_super_secret_jwt_key_2026"),
