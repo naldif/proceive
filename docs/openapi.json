@@ -11,7 +11,11 @@
   },
   "servers": [
     {
-      "url": "http://localhost:8081",
+      "url": "https://proceive-production.up.railway.app",
+      "description": "Production Server (Railway)"
+    },
+    {
+      "url": "http://localhost:8080",
       "description": "Local Development Server"
     }
   ],
