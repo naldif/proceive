@@ -121,7 +121,6 @@ Database menggunakan PostgreSQL dengan 11 entitas inti dan 16 relasi foreign key
   - `po_lines`: Rincian item barang, kuantitas, dan harga satuan dalam PO.
   - `goods_receipts`: Catatan penerimaan barang, nomor surat jalan, berkas bukti kirim Cloudinary, dan status verifikasi gudang.
 
-> Kode query DBML dan DDL SQL siap salin tersedia di file [`docs/dbdiagram.md`](docs/dbdiagram.md). Template visual Draw.io tersedia di [`docs/erd_drawio.html`](docs/erd_drawio.html).
 
 ---
 
